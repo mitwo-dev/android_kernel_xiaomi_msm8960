@@ -191,7 +191,7 @@ struct msm_hs_port {
 
 #define MSM_UARTDM_BURST_SIZE 16   /* DM burst size (in bytes) */
 #define UARTDM_TX_BUF_SIZE UART_XMIT_SIZE
-#define UARTDM_RX_BUF_SIZE 512
+#define UARTDM_RX_BUF_SIZE 4096
 #define RETRY_TIMEOUT 5
 #define UARTDM_NR 256
 #define RX_FLUSH_COMPLETE_TIMEOUT 300 /* In jiffies */
@@ -749,6 +749,10 @@ static unsigned long msm_hs_set_bps_locked(struct uart_port *uport,
 		rxstale = 31;
 		break;
 	case 460800:
+		msm_hs_write(uport, UARTDM_CSR_ADDR, 0xff);
+		rxstale = 31;
+		break;
+	case 500000:
 		msm_hs_write(uport, UARTDM_CSR_ADDR, 0xff);
 		rxstale = 31;
 		break;

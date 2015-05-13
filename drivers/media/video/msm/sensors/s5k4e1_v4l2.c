@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/module.h>
 #include "msm_sensor.h"
 #define SENSOR_NAME "s5k4e1"
 #define PLATFORM_DRIVER_NAME "msm_camera_s5k4e1"
@@ -211,6 +212,19 @@ static struct msm_sensor_output_info_t s5k4e1_dimensions[] = {
 	},
 };
 
+static struct msm_camera_csi_params s5k4e1_csi_params = {
+	.data_format = CSI_10BIT,
+	.lane_cnt    = 1,
+	.lane_assign = 0xe4,
+	.dpcm_scheme = 0,
+	.settle_cnt  = 24,
+};
+
+static struct msm_camera_csi_params *s5k4e1_csi_params_array[] = {
+	&s5k4e1_csi_params,
+	&s5k4e1_csi_params,
+};
+
 static struct msm_sensor_output_reg_addr_t s5k4e1_reg_addr = {
 	.x_output = 0x034C,
 	.y_output = 0x034E,
@@ -235,7 +249,7 @@ static inline uint8_t s5k4e1_byte(uint16_t word, uint8_t offset)
 }
 
 static int32_t s5k4e1_write_prev_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
-	uint16_t gain, uint32_t line, int32_t luma_avg, uint16_t fgain)
+						uint16_t gain, uint32_t line)
 {
 	uint16_t max_legal_gain = 0x0200;
 	int32_t rc = 0;
@@ -321,7 +335,7 @@ static int32_t s5k4e1_write_prev_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
 }
 
 static int32_t s5k4e1_write_pict_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
-		uint16_t gain, uint32_t line, int32_t luma_avg, uint16_t fgain)
+		uint16_t gain, uint32_t line)
 {
 	uint16_t max_legal_gain = 0x0200;
 	uint16_t min_ll_pck = 0x0AB2;
@@ -474,6 +488,7 @@ static struct msm_sensor_fn_t s5k4e1_func_tbl = {
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = msm_sensor_power_up,
 	.sensor_power_down = msm_sensor_power_down,
+	.sensor_get_csi_params = msm_sensor_get_csi_params,
 };
 
 static struct msm_sensor_reg_t s5k4e1_regs = {
@@ -502,6 +517,7 @@ static struct msm_sensor_ctrl_t s5k4e1_s_ctrl = {
 	.sensor_id_info = &s5k4e1_id_info,
 	.sensor_exp_gain_info = &s5k4e1_exp_gain_info,
 	.cam_mode = MSM_SENSOR_MODE_INVALID,
+	.csic_params = &s5k4e1_csi_params_array[0],
 	.msm_sensor_mutex = &s5k4e1_mut,
 	.sensor_i2c_driver = &s5k4e1_i2c_driver,
 	.sensor_v4l2_subdev_info = s5k4e1_subdev_info,

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,9 +11,9 @@
  *
  */
 #include <linux/i2c.h>
-#include <linux/mhl_8334.h>
 
 #include "mhl_i2c_utils.h"
+#include "mhl_8334.h"
 
 uint8_t slave_addrs[MAX_PAGES] = {
 	DEV_PAGE_TPI_0    ,

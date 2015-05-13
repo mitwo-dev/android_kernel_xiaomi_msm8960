@@ -197,6 +197,8 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	return error;
 }
 
+extern void disable_hlt(void);
+extern void enable_hlt(void);
 /**
  * suspend_devices_and_enter - Suspend devices and enter system sleep state.
  * @state: System sleep state to enter.
@@ -216,6 +218,7 @@ int suspend_devices_and_enter(suspend_state_t state)
 			goto Close;
 	}
 	suspend_console();
+	ftrace_stop();
 	suspend_test_start();
 	error = dpm_suspend_start(PMSG_SUSPEND);
 	if (error) {
@@ -227,7 +230,9 @@ int suspend_devices_and_enter(suspend_state_t state)
 		goto Recover_platform;
 
 	do {
+		disable_hlt();
 		error = suspend_enter(state, &wakeup);
+		enable_hlt();
 	} while (!error && !wakeup
 		&& suspend_ops->suspend_again && suspend_ops->suspend_again());
 
@@ -235,6 +240,7 @@ int suspend_devices_and_enter(suspend_state_t state)
 	suspend_test_start();
 	dpm_resume_end(PMSG_RESUME);
 	suspend_test_finish("resume devices");
+	ftrace_start();
 	resume_console();
  Close:
 	if (suspend_ops->end)
@@ -305,12 +311,21 @@ static void pm_suspend_marker(char *annotation)
 {
 	struct timespec ts;
 	struct rtc_time tm;
+	static struct timespec old_ts;
 
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
 	pr_info("PM: suspend %s %d-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
 		annotation, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
+
+	if (!strncmp(annotation, "entry", strlen("entry"))) {
+		old_ts.tv_sec = ts.tv_sec;
+		old_ts.tv_nsec = ts.tv_nsec;
+	} else {
+		pr_info("PM: suspend lasts %lu seconds\n",
+			ts.tv_sec - old_ts.tv_sec);
+	}
 }
 
 /**

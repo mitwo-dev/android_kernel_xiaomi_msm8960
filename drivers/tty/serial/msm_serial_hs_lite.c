@@ -813,7 +813,7 @@ static void msm_hsl_set_termios(struct uart_port *port,
 	spin_lock_irqsave(&port->lock, flags);
 
 	/* calculate and set baud rate */
-	baud = uart_get_baud_rate(port, termios, old, 300, 460800);
+	baud = uart_get_baud_rate(port, termios, old, 300, 921600);
 
 	msm_hsl_set_baud_rate(port, baud);
 

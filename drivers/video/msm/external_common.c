@@ -25,9 +25,41 @@
 #include "msm_fb.h"
 #include "hdmi_msm.h"
 #include "external_common.h"
-#include "mhl_api.h"
+#include <linux/mhl_api.h>
 
 #include "mdp.h"
+
+uint8_t video_cap_d_block_found=false;
+enum EDID_ErrorCodes
+{
+	EDID_OK,
+	EDID_INCORRECT_HEADER,
+	EDID_CHECKSUM_ERROR,
+	EDID_NO_861_EXTENSIONS,
+	EDID_SHORT_DESCRIPTORS_OK,
+	EDID_LONG_DESCRIPTORS_OK,
+	EDID_EXT_TAG_ERROR,
+	EDID_REV_ADDR_ERROR,
+	EDID_V_DESCR_OVERFLOW,
+	EDID_UNKNOWN_TAG_CODE,
+	EDID_NO_DETAILED_DESCRIPTORS,
+	EDID_DDC_BUS_REQ_FAILURE,
+	EDID_DDC_BUS_RELEASE_FAILURE
+};
+#define AUDIO_D_BLOCK       0x01
+#define VIDEO_D_BLOCK       0x02
+#define VENDOR_SPEC_D_BLOCK 0x03
+#define SPKR_ALLOC_D_BLOCK  0x04
+#define USE_EXTENDED_TAG    0x07
+#define COLORIMETRY_D_BLOCK 0x05
+#define HDMI_SIGNATURE_LEN  0x03
+#define CEC_PHYS_ADDR_LEN   0x02
+#define EDID_EXTENSION_TAG  0x02
+#define EDID_REV_THREE      0x03
+#define EDID_DATA_START     0x04
+#define EDID_BLOCK_0        0x00
+#define EDID_BLOCK_2_3      0x01
+#define VIDEO_CAPABILITY_D_BLOCK 0x00
 
 struct external_common_state_type *external_common_state;
 static int number_of_sad;
@@ -133,8 +165,8 @@ struct msm_hdmi_mode_timing_info
 	hdmi_mhl_supported_video_mode_lut[HDMI_VFRMT_MAX] = {
 	VFRMT_NOT_SUPPORTED(HDMI_VFRMT_UNKNOWN),
 	HDMI_VFRMT_640x480p60_4_3_TIMING,
-	VFRMT_NOT_SUPPORTED(HDMI_VFRMT_720x480p60_4_3),
-	VFRMT_NOT_SUPPORTED(HDMI_VFRMT_720x480p60_16_9),
+	HDMI_VFRMT_720x480p60_4_3_TIMING,
+	HDMI_VFRMT_720x480p60_16_9_TIMING,
 	HDMI_VFRMT_1280x720p60_16_9_TIMING,
 	VFRMT_NOT_SUPPORTED(HDMI_VFRMT_1920x1080i60_16_9),
 	VFRMT_NOT_SUPPORTED(HDMI_VFRMT_1440x480i60_4_3),
@@ -1452,9 +1484,11 @@ static void hdmi_edid_extract_extended_data_blocks(const uint8 *in_buf)
 {
 	uint8 len = 0;
 	uint32 start_offset = DBC_START_OFFSET;
+	uint8 const *etag = hdmi_edid_find_block(in_buf, start_offset, 7, &len);
+	video_cap_d_block_found =false;
+
 
 	/* A Tage code of 7 identifies extended data blocks */
-	uint8 const *etag = hdmi_edid_find_block(in_buf, start_offset, 7, &len);
 
 	while (etag != NULL) {
 		/* The extended data block should at least be 2 bytes long */
@@ -1490,6 +1524,8 @@ static void hdmi_edid_extract_extended_data_blocks(const uint8 *in_buf)
 					external_common_state->pt_scan_info,
 					external_common_state->it_scan_info,
 					external_common_state->ce_scan_info);
+
+				video_cap_d_block_found =true;
 				break;
 			default:
 				DEV_DBG("EDID: Extend Tag Code %d not"
@@ -2172,6 +2208,7 @@ int hdmi_common_read_edid(void)
 	char vendor_id[5];
 	/* EDID_BLOCK_SIZE[0x80] Each page size in the EDID ROM */
 	uint8 edid_buf[0x80 * 4];
+	video_cap_d_block_found=false;
 
 	external_common_state->pt_scan_info = 0;
 	external_common_state->it_scan_info = 0;
@@ -2285,6 +2322,29 @@ int hdmi_common_read_edid(void)
 
 	hdmi_edid_get_display_mode(edid_buf,
 		&external_common_state->disp_mode_list, num_og_cea_blocks);
+
+	if(video_cap_d_block_found ==true){
+		//you should set the Quantization Ranges to limited range here(16-235).
+
+		/* qualcomm quantization-range patch;  add begin */
+		/* limited range */
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x70, 0x00EB0010);
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x74, 0x00EB0010);
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x78, 0x00EB0010);
+		printk("hdmi_edid_extract_VIDEO_CAPABILITY_D_BLOCK; set to limited range");
+		/* qualcomm quantization-range patch;  add end */
+	}
+	else{
+		//you should set the data output Quantization Ranges to Full range(0-255).
+		/* qualcomm quantization-range patch;  add begin */
+		/* full range */
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x70, 0x00FF0000);
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x74, 0x00FF0000);
+		MDP_OUTP(MDP_BASE + DMA_E_BASE + 0x78, 0x00FF0000);
+
+		/* qualcomm quantization-range patch;  add end */
+		printk("hdmi_edid_didn't extract_VIDEO_CAPABILITY_D_BLOCK; set to Full range");
+	}
 
 	return 0;
 

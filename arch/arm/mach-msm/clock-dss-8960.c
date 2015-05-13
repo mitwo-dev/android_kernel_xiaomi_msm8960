@@ -147,7 +147,7 @@ int hdmi_pll_enable(void)
 	writel_relaxed(val, HDMI_PHY_PLL_PWRDN_B);
 	writel_relaxed(0x80, HDMI_PHY_REG_2);
 
-	timeout_count = 1000;
+	timeout_count = 10000;
 	while (!(readl_relaxed(HDMI_PHY_PLL_STATUS0) & BIT(0)) &&
 			timeout_count && pll_lock_retry) {
 		if (--timeout_count == 0) {

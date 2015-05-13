@@ -18,7 +18,6 @@
 #include <linux/msm_rotator.h>
 #include <linux/dma-mapping.h>
 #include <mach/kgsl.h>
-#include <linux/android_pmem.h>
 #include <linux/regulator/machine.h>
 #include <linux/init.h>
 #include <mach/irqs.h>
@@ -1295,7 +1294,6 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	.num_levels = 3,
 	.set_grp_async = set_grp3d_async,
 	.idle_timeout = HZ/20,
-	.nap_allowed = true,
 	.idle_needed = true,
 	.clk_map = KGSL_CLK_SRC | KGSL_CLK_CORE |
 		KGSL_CLK_IFACE | KGSL_CLK_MEM,
@@ -1338,7 +1336,6 @@ static struct kgsl_device_platform_data kgsl_2d0_pdata = {
 	/* HW workaround, run Z180 SYNC @ 192 MHZ */
 	.set_grp_async = NULL,
 	.idle_timeout = HZ/10,
-	.nap_allowed = true,
 	.idle_needed = true,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE,
 };

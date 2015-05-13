@@ -111,6 +111,7 @@ static struct attribute *tz_attrs[] = {
 
 static struct attribute_group tz_attr_group = {
 	.attrs = tz_attrs,
+	.name = "trustzone",
 };
 
 static void tz_wake(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)

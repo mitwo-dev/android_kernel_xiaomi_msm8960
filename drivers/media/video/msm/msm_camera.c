@@ -1237,7 +1237,7 @@ static int msm_get_stats(struct msm_sync *sync, void __user *arg)
 	}
 
 	rc = 0;
-        memset(&stats, 0, sizeof(stats));
+
 	qcmd = msm_dequeue(&sync->event_q, list_config);
 	if (!qcmd) {
 		/* Should be associated with wait_event
@@ -1568,6 +1568,13 @@ static int msm_ctrl_cmd_done(struct msm_control_device *ctrl_pmsm,
 	qcmd->command = command;
 	uptr = command->value;
 
+	if (command->queue_idx < 0 ||
+			command->queue_idx >= MAX_NUM_ACTIVE_CAMERA) {
+		pr_err("%s: Invalid value OR index %d\n", __func__,
+			command->queue_idx);
+		return -EINVAL;
+	}
+
 	if (command->length > 0) {
 		command->value = ctrl_pmsm->ctrl_data;
 		if (command->length > sizeof(ctrl_pmsm->ctrl_data)) {
@@ -1578,7 +1585,7 @@ static int msm_ctrl_cmd_done(struct msm_control_device *ctrl_pmsm,
 		}
 
 		if (copy_from_user(command->value,
-					uptr,
+					(void __user *)uptr,
 					command->length)) {
 			ERR_COPY_FROM_USER();
 			return -EFAULT;

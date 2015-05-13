@@ -41,6 +41,13 @@ static struct subsys_device *modem_8960_dev;
 
 #define MAX_SSR_REASON_LEN 81U
 
+static int modem_notif_handler(struct notifier_block *this,
+				unsigned long code,
+				void *_cmd);
+
+static struct notifier_block modem_notif_nb = {
+	.notifier_call = modem_notif_handler,
+};
 static void log_modem_sfr(void)
 {
 	u32 size;
@@ -85,6 +92,18 @@ static void smsm_state_cb(void *data, uint32_t old_state, uint32_t new_state)
 
 #define Q6_FW_WDOG_ENABLE		0x08882024
 #define Q6_SW_WDOG_ENABLE		0x08982024
+
+static int modem_notif_handler(struct notifier_block *this,
+                                unsigned long code,
+                                void *_cmd)
+{
+	if (code == MODEM_NOTIFIER_START_RESET) {
+		pr_err("Modem error fatal'ed.");
+		restart_modem();
+	}
+
+	return NOTIFY_DONE;
+}
 
 static int modem_shutdown(const struct subsys_desc *subsys)
 {
@@ -300,8 +319,13 @@ static int __init modem_8960_init(void)
 	if (soc_class_is_apq8064())
 		return -ENODEV;
 
-	ret = smsm_state_cb_register(SMSM_MODEM_STATE, SMSM_RESET,
-		smsm_state_cb, 0);
+	/* Need to listen for SMSM_RESET always */
+	if (cpu_is_msm8960ab())
+		ret = modem_register_notifier(&modem_notif_nb);
+	else
+		ret = smsm_state_cb_register(SMSM_MODEM_STATE, SMSM_RESET,
+			smsm_state_cb, 0);
+
 	register_reboot_notifier(&shutdown_notifier);
 	mdm_driver_register_notifier("external_modem", &qsc_powerup_notifier);
 	if (ret < 0)

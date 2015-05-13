@@ -258,6 +258,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mem_hid = MEMTYPE_EBI1,
 #endif
 	.mdp_iommu_split_domain = 1,
+	.cont_splash_enabled = 0x01,
 };
 
 void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)

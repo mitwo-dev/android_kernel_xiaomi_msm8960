@@ -73,6 +73,25 @@ enum pm8xxx_pon_config {
 	PM8XXX_RESTART_ON_HARD_RESET,
 };
 
+enum pm8xxx_pon_debounce_timer {
+	PM8XXX_PON_DEBOUNCE_TIMER_0MS = 0,
+	PM8XXX_PON_DEBOUNCE_TIMER_32MS = 0x10,
+	PM8XXX_PON_DEBOUNCE_TIMER_56MS = 0x20,
+	PM8XXX_PON_DEBOUNCE_TIMER_80MS = 0x30,
+	PM8XXX_PON_DEBOUNCE_TIMER_128MS = 0x40,
+	PM8XXX_PON_DEBOUNCE_TIMER_184MS = 0x50,
+	PM8XXX_PON_DEBOUNCE_TIMER_272MS = 0x60,
+	PM8XXX_PON_DEBOUNCE_TIMER_408MS = 0x70,
+	PM8XXX_PON_DEBOUNCE_TIMER_608MS = 0x80,
+	PM8XXX_PON_DEBOUNCE_TIMER_904MS = 0x90,
+	PM8XXX_PON_DEBOUNCE_TIMER_1352MS = 0xa0,
+	PM8XXX_PON_DEBOUNCE_TIMER_2048MS = 0xb0,
+	PM8XXX_PON_DEBOUNCE_TIMER_3072MS = 0xc0,
+	PM8XXX_PON_DEBOUNCE_TIMER_4480MS = 0xd0,
+	PM8XXX_PON_DEBOUNCE_TIMER_6720MS = 0xe0,
+	PM8XXX_PON_DEBOUNCE_TIMER_10256MS = 0xf0,
+};
+
 enum pm8xxx_aux_clk_id {
 	CLK_MP3_1,
 	CLK_MP3_2,
@@ -168,6 +187,7 @@ int pm8xxx_watchdog_reset_control(int enable);
  * RETURNS: an appropriate -ERRNO error value on error, or zero for success.
  */
 int pm8xxx_hard_reset_config(enum pm8xxx_pon_config config);
+int pm8xxx_hard_reset_debounce_timer(enum pm8xxx_pon_debounce_timer delay);
 
 /**
  * pm8xxx_stay_on - enables stay_on feature

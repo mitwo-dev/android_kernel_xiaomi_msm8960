@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,7 +13,6 @@
 #include <linux/delay.h>
 #include <linux/clk.h>
 #include <linux/io.h>
-#include <linux/module.h>
 #include <mach/clk.h>
 #include <mach/board.h>
 #include <mach/camera.h>
@@ -137,17 +136,18 @@
 #define MIPI_PWR_CNTL_EN	0x07
 #define MIPI_PWR_CNTL_DIS	0x0
 
-static int msm_csic_config(struct v4l2_subdev *sd,
-	struct msm_camera_csi_params *csic_params)
+static int msm_csic_config(struct csic_cfg_params *cfg_params)
 {
 	int rc = 0;
 	uint32_t val = 0;
 	struct csic_device *csic_dev;
+	struct msm_camera_csi_params *csic_params;
 	void __iomem *csicbase;
 	int i;
 
-	csic_dev = v4l2_get_subdevdata(sd);
+	csic_dev = v4l2_get_subdevdata(cfg_params->subdev);
 	csicbase = csic_dev->base;
+	csic_params = cfg_params->parms;
 
 	/* Enable error correction for DATA lane. Applies to all data lanes */
 	msm_camera_io_w(0x4, csicbase + MIPI_PHY_CONTROL);
@@ -258,7 +258,7 @@ static struct msm_cam_clk_info csic_7x_clk_info[] = {
 	{"csi_pclk", -1},
 };
 
-static int msm_csic_init(struct v4l2_subdev *sd)
+static int msm_csic_init(struct v4l2_subdev *sd, uint32_t *csic_version)
 {
 	int rc = 0;
 	struct csic_device *csic_dev;
@@ -354,40 +354,17 @@ static int msm_csic_release(struct v4l2_subdev *sd)
 	return 0;
 }
 
-static long msm_csic_cmd(struct v4l2_subdev *sd, void *arg)
-{
-	long rc = 0;
-	struct csic_cfg_data cdata;
-	struct msm_camera_csi_params csic_params;
-	if (copy_from_user(&cdata,
-		(void *)arg,
-		sizeof(struct csic_cfg_data)))
-		return -EFAULT;
-	CDBG("%s cfgtype = %d\n", __func__, cdata.cfgtype);
-	switch (cdata.cfgtype) {
-	case CSIC_INIT:
-		rc = msm_csic_init(sd);
-		break;
-	case CSIC_CFG:
-		if (copy_from_user(&csic_params,
-			(void *)cdata.csic_params,
-			sizeof(struct msm_camera_csi_params)))
-			return -EFAULT;
-		rc = msm_csic_config(sd, &csic_params);
-		break;
-	default:
-		rc = -EINVAL;
-		break;
-	}
-	return rc;
-}
-
 static long msm_csic_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg)
 {
+	struct csic_cfg_params cfg_params;
 	switch (cmd) {
 	case VIDIOC_MSM_CSIC_CFG:
-		return msm_csic_cmd(sd, arg);
+		cfg_params.subdev = sd;
+		cfg_params.parms = arg;
+		return msm_csic_config((struct csic_cfg_params *)&cfg_params);
+	case VIDIOC_MSM_CSIC_INIT:
+		return msm_csic_init(sd, (uint32_t *)arg);
 	case VIDIOC_MSM_CSIC_RELEASE:
 		return msm_csic_release(sd);
 	default:
@@ -410,8 +387,6 @@ static int __devinit csic_probe(struct platform_device *pdev)
 {
 	struct csic_device *new_csic_dev;
 	int rc = 0;
-	struct msm_cam_subdev_info sd_info;
-
 	CDBG("%s: device id = %d\n", __func__, pdev->id);
 	new_csic_dev = kzalloc(sizeof(struct csic_device), GFP_KERNEL);
 	if (!new_csic_dev) {
@@ -479,18 +454,9 @@ static int __devinit csic_probe(struct platform_device *pdev)
 
 	iounmap(new_csic_dev->base);
 	new_csic_dev->base = NULL;
-	sd_info.sdev_type = CSIC_DEV;
-	sd_info.sd_index = pdev->id;
-	sd_info.irq_num = new_csic_dev->irq->start;
 	msm_cam_register_subdev_node(
-		&new_csic_dev->subdev, &sd_info);
+		&new_csic_dev->subdev, CSIC_DEV, pdev->id);
 
-	media_entity_init(&new_csic_dev->subdev.entity, 0, NULL, 0);
-	new_csic_dev->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV;
-	new_csic_dev->subdev.entity.group_id = CSIC_DEV;
-	new_csic_dev->subdev.entity.name = pdev->name;
-	new_csic_dev->subdev.entity.revision =
-		new_csic_dev->subdev.devnode->num;
 	return 0;
 
 csic_no_resource:

@@ -36,6 +36,8 @@
 #define ISA1200_HCTRL5_VIB_STOP	0x6B
 #define ISA1200_POWER_DOWN_MASK 0x7F
 
+static int pwm_duty = 0;
+
 struct isa1200_chip {
 	struct i2c_client *client;
 	struct isa1200_platform_data *pdata;
@@ -98,7 +100,7 @@ static void isa1200_vib_set(struct isa1200_chip *haptic, int enable)
 			int period_us = haptic->period_ns / 1000;
 
 			rc = pwm_config(haptic->pwm,
-				(period_us * haptic->pdata->duty) / 100,
+				(period_us * pwm_duty) / 100,
 				period_us);
 			if (rc < 0) {
 				pr_err("%s: pwm_config fail\n", __func__);
@@ -110,6 +112,7 @@ static void isa1200_vib_set(struct isa1200_chip *haptic, int enable)
 				pr_err("%s: pwm_enable fail\n", __func__);
 				goto chip_dwn;
 			}
+			gpio_set_value_cansleep(haptic->pdata->hap_en_gpio, 1);
 		} else if (haptic->pdata->mode_ctrl == PWM_GEN_MODE) {
 			/* check for board specific clk callback */
 			if (haptic->pdata->clk_enable) {
@@ -279,15 +282,10 @@ static int isa1200_setup(struct i2c_client *client)
 	int temp, rc;
 	u8 value;
 
-	gpio_set_value_cansleep(haptic->pdata->hap_en_gpio, 0);
-	if (haptic->is_len_gpio_valid == true)
-		gpio_set_value_cansleep(haptic->pdata->hap_len_gpio, 0);
-
-	udelay(250);
-
-	gpio_set_value_cansleep(haptic->pdata->hap_en_gpio, 1);
-	if (haptic->is_len_gpio_valid == true)
+	if (haptic->is_len_gpio_valid == true) {
 		gpio_set_value_cansleep(haptic->pdata->hap_len_gpio, 1);
+		udelay(250);
+	}
 
 	value =	(haptic->pdata->smart_en << 3) |
 		(haptic->pdata->is_erm << 5) |
@@ -348,7 +346,6 @@ reset_hctrl1:
 	i2c_smbus_write_byte_data(client, ISA1200_HCTRL1,
 				ISA1200_HCTRL1_RESET);
 reset_gpios:
-	gpio_set_value_cansleep(haptic->pdata->hap_en_gpio, 0);
 	if (haptic->is_len_gpio_valid == true)
 		gpio_set_value_cansleep(haptic->pdata->hap_len_gpio, 0);
 	return rc;
@@ -579,12 +576,38 @@ static int isa1200_parse_dt(struct device *dev,
 #endif
 
 
+static ssize_t vibrator_amp_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", pwm_duty);
+}
+
+static ssize_t vibrator_amp_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+    int gain;
+	sscanf(buf, "%d", &gain);
+
+    if(gain>100)
+        gain=100;
+    else if(gain<70)
+        gain=70;
+
+    pwm_duty = gain;
+
+	return size;
+}
+
+static struct device_attribute android_vibrator_device_attrs[] = {
+	__ATTR(amp, S_IRUGO | S_IWUSR, vibrator_amp_show, vibrator_amp_store),
+};
+
 static int isa1200_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct isa1200_chip *haptic;
 	struct isa1200_platform_data *pdata;
-	int ret;
+	int ret, i;
 
 	if (!i2c_check_functionality(client->adapter,
 			I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -728,6 +751,18 @@ static int isa1200_probe(struct i2c_client *client,
 		}
 	}
 
+
+    pwm_duty = pdata->duty;
+
+    for (i = 0; i < ARRAY_SIZE(android_vibrator_device_attrs); i++) {
+		ret = device_create_file(haptic->dev.dev,
+				&android_vibrator_device_attrs[i]);
+		if (ret < 0) {
+			pr_err("%s: failed to create sysfs\n", __func__);
+			goto reset_hctrl0;
+		}
+	}
+
 	printk(KERN_INFO "%s: %s registered\n", __func__, id->name);
 	return 0;
 
@@ -825,7 +860,6 @@ static int isa1200_suspend(struct i2c_client *client, pm_message_t mesg)
 	/* turn-off current vibration */
 	isa1200_vib_set(haptic, 0);
 
-	gpio_set_value_cansleep(haptic->pdata->hap_en_gpio, 0);
 	if (haptic->is_len_gpio_valid == true)
 		gpio_set_value_cansleep(haptic->pdata->hap_len_gpio, 0);
 

@@ -804,8 +804,6 @@ pm8921_add_subdevices(const struct pm8921_platform_data *pdata,
 	}
 
 	if (pdata->ccadc_pdata) {
-		pdata->ccadc_pdata->ccadc_cdata.batt_temp_channel
-						= CHANNEL_BATT_THERM;
 		ccadc_cell.platform_data = pdata->ccadc_pdata;
 		ccadc_cell.pdata_size =
 				sizeof(struct pm8xxx_ccadc_platform_data);
@@ -928,6 +926,10 @@ static int __devinit pm8921_probe(struct platform_device *pdev)
 		pr_err("Cannot add subdevices rc=%d\n", rc);
 		goto err;
 	}
+
+	/* Enable SMPL with 0.5s delay */
+	pm8xxx_smpl_set_delay(PM8XXX_SMPL_DELAY_0p5);
+	pm8xxx_smpl_control(1);
 
 	/* gpio might not work if no irq device is found */
 	WARN_ON(pmic->irq_chip == NULL);

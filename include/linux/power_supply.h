@@ -140,6 +140,7 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_USB_DCP,	/* Dedicated Charging Port */
 	POWER_SUPPLY_TYPE_USB_CDP,	/* Charging Downstream Port */
 	POWER_SUPPLY_TYPE_USB_ACA,	/* Accessory Charger Adapters */
+	POWER_SUPPLY_TYPE_BMS,		/* Battery Monitor System */
 };
 
 union power_supply_propval {
@@ -222,6 +223,8 @@ extern int power_supply_set_charge_type(struct power_supply *psy, int type);
 extern int power_supply_set_supply_type(struct power_supply *psy,
 					enum power_supply_type supply_type);
 extern int power_supply_is_system_supplied(void);
+extern int register_power_supply_notifier(struct notifier_block*);
+extern int unregister_power_supply_notifier(struct notifier_block*);
 #else
 static inline struct power_supply *power_supply_get_by_name(char *name)
 							{ return -ENOSYS; }
@@ -245,6 +248,8 @@ static inline int power_supply_set_supply_type(struct power_supply *psy,
 					enum power_supply_type supply_type);
 							{ return -ENOSYS; }
 static inline int power_supply_is_system_supplied(void) { return -ENOSYS; }
+static inline int register_power_supply_notifier(struct notifier_block*) { return -ENOSYS}
+static inline int unregister_power_supply_notifier(struct notifier_block*) {return -ENOSYS}
 #endif
 
 extern int power_supply_register(struct device *parent,

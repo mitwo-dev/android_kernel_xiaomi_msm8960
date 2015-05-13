@@ -101,37 +101,15 @@ static void mdm_atomic_soft_reset(struct mdm_modem_drv *mdm_drv)
 
 static void mdm_power_down_common(struct mdm_modem_drv *mdm_drv)
 {
-	int i;
 	int soft_reset_direction =
 		mdm_drv->pdata->soft_reset_inverted ? 1 : 0;
 
 	mdm_peripheral_disconnect(mdm_drv);
 
-	/* Wait for the modem to complete its power down actions. */
-	for (i = 20; i > 0; i--) {
-		if (gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 0) {
-			if (mdm_debug_mask & MDM_DEBUG_MASK_SHDN_LOG)
-				pr_info("%s:id %d: mdm2ap_statuswent low, i=%d\n",
-					__func__, mdm_drv->device_id, i);
-			break;
-		}
-		msleep(100);
-	}
-
-	/* Assert the soft reset line whether mdm2ap_status went low or not */
 	gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
-					soft_reset_direction);
-	if (i == 0) {
-		pr_err("%s: MDM2AP_STATUS never went low. Doing a hard reset\n",
-			   __func__);
-		/*
-		* Currently, there is a debounce timer on the charm PMIC. It is
-		* necessary to hold the PMIC RESET low for ~3.5 seconds
-		* for the reset to fully take place. Sleep here to ensure the
-		* reset has occured before the function exits.
-		*/
-		msleep(4000);
-	}
+				soft_reset_direction);
+	msleep(500);
+
 }
 
 static void mdm_do_first_power_on(struct mdm_modem_drv *mdm_drv)

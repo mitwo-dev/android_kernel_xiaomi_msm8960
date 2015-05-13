@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -80,7 +80,7 @@ static struct msm_camera_i2c_reg_conf s5k3l1yx_prev_settings[] = {
 	{0x0202, 0x06}, /* coarse_integration_time */
 	{0x0203, 0x00}, /* coarse_integration_time */
 	{0x0340, 0x09}, /* frame_length_lines */
-	{0x0341, 0x6C}, /* frame_length_lines */
+	{0x0341, 0x98}, /* frame_length_lines */
 	{0x0342, 0x11}, /* line_length_pck */
 	{0x0343, 0x80}, /* line_length_pck */
 	{0x0344, 0x00}, /* x_addr_start */
@@ -408,7 +408,7 @@ static struct msm_camera_i2c_reg_conf s5k3l1yx_recommend_settings[] = {
 	{0x3C13, 0xC0},
 	{0x3C14, 0x70},
 	{0x3C15, 0x80},
-	{0x3C20, 0x04},
+	{0x3C20, 0x00},
 	{0x3C23, 0x03},
 	{0x3C24, 0x00},
 	{0x3C50, 0x72},
@@ -489,7 +489,7 @@ static struct msm_sensor_output_info_t s5k3l1yx_dimensions[] = {
 		.x_output = 1984,
 		.y_output = 1508,
 		.line_length_pclk = 4480,
-		.frame_length_lines = 2412,
+		.frame_length_lines = 2456,
 		.vt_pixel_clk = 330000000,
 		.op_pixel_clk = 264000000,
 		.binning_factor = 1,
@@ -536,18 +536,58 @@ static struct msm_sensor_output_info_t s5k3l1yx_dimensions[] = {
 	},
 };
 
+static struct msm_camera_csid_vc_cfg s5k3l1yx_cid_cfg[] = {
+	{0, CSI_RAW10, CSI_DECODE_10BIT},
+	{1, CSI_EMBED_DATA, CSI_DECODE_8BIT},
+};
+
+static struct msm_camera_csi2_params s5k3l1yx_csi_params = {
+	.csid_params = {
+		.lane_cnt = 4,
+		.lut_params = {
+			.num_cid = ARRAY_SIZE(s5k3l1yx_cid_cfg),
+			.vc_cfg = s5k3l1yx_cid_cfg,
+		},
+	},
+	.csiphy_params = {
+		.lane_cnt = 4,
+		.settle_cnt = 0x1B,
+	},
+};
+
+static struct msm_camera_csid_vc_cfg s5k3l1yx_cid_dpcm_cfg[] = {
+	{0, CSI_RAW8, CSI_DECODE_DPCM_10_8_10},
+};
+
+static struct msm_camera_csi2_params s5k3l1yx_csi_dpcm_params = {
+	.csid_params = {
+		.lane_assign = 0xe4,
+		.lane_cnt = 4,
+		.lut_params = {
+			.num_cid = ARRAY_SIZE(s5k3l1yx_cid_dpcm_cfg),
+			.vc_cfg = s5k3l1yx_cid_dpcm_cfg,
+		},
+	},
+	.csiphy_params = {
+		.lane_cnt = 4,
+		.settle_cnt = 0x1B,
+	},
+};
+
+static struct msm_camera_csi2_params *s5k3l1yx_csi_params_array[] = {
+	&s5k3l1yx_csi_params,
+	&s5k3l1yx_csi_params,
+	&s5k3l1yx_csi_params,
+	&s5k3l1yx_csi_params,
+	&s5k3l1yx_csi_params,
+	&s5k3l1yx_csi_dpcm_params,
+};
+
 static struct msm_sensor_output_reg_addr_t s5k3l1yx_reg_addr = {
 	.x_output = 0x34C,
 	.y_output = 0x34E,
 	.line_length_pclk = 0x342,
 	.frame_length_lines = 0x340,
-};
-
-static enum msm_camera_vreg_name_t s5k3l1yx_veg_seq[] = {
-	CAM_VDIG,
-	CAM_VANA,
-	CAM_VIO,
-	CAM_VAF,
 };
 
 static struct msm_sensor_id_info_t s5k3l1yx_id_info = {
@@ -578,48 +618,9 @@ static struct msm_camera_i2c_client s5k3l1yx_sensor_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_WORD_ADDR,
 };
 
-static const struct of_device_id s5k3l1yx_dt_match[] = {
-	{.compatible = "qcom,s5k3l1yx", .data = &s5k3l1yx_s_ctrl},
-	{}
-};
-
-MODULE_DEVICE_TABLE(of, s5k3l1yx_dt_match);
-
-static struct platform_driver s5k3l1yx_platform_driver = {
-	.driver = {
-		.name = "qcom,s5k3l1yx",
-		.owner = THIS_MODULE,
-		.of_match_table = s5k3l1yx_dt_match,
-	},
-};
-
-static int32_t s5k3l1yx_platform_probe(struct platform_device *pdev)
-{
-	int32_t rc = 0;
-	const struct of_device_id *match;
-	match = of_match_device(s5k3l1yx_dt_match, &pdev->dev);
-	rc = msm_sensor_platform_probe(pdev, match->data);
-	return rc;
-}
-
 static int __init msm_sensor_init_module(void)
 {
-	int32_t rc = 0;
-	rc = platform_driver_probe(&s5k3l1yx_platform_driver,
-		s5k3l1yx_platform_probe);
-	if (!rc)
-		return rc;
 	return i2c_add_driver(&s5k3l1yx_i2c_driver);
-}
-
-static void __exit msm_sensor_exit_module(void)
-{
-	if (s5k3l1yx_s_ctrl.pdev) {
-		msm_sensor_free_sensor_data(&s5k3l1yx_s_ctrl);
-		platform_driver_unregister(&s5k3l1yx_platform_driver);
-	} else
-		i2c_del_driver(&s5k3l1yx_i2c_driver);
-	return;
 }
 
 static struct v4l2_subdev_core_ops s5k3l1yx_subdev_core_ops = {
@@ -651,7 +652,7 @@ static struct msm_sensor_fn_t s5k3l1yx_func_tbl = {
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = msm_sensor_power_up,
 	.sensor_power_down = msm_sensor_power_down,
-	.sensor_adjust_frame_lines = msm_sensor_adjust_frame_lines1,
+	.sensor_adjust_frame_lines = msm_sensor_adjust_frame_lines,
 	.sensor_get_csi_params = msm_sensor_get_csi_params,
 };
 
@@ -677,12 +678,11 @@ static struct msm_sensor_ctrl_t s5k3l1yx_s_ctrl = {
 	.msm_sensor_reg = &s5k3l1yx_regs,
 	.sensor_i2c_client = &s5k3l1yx_sensor_i2c_client,
 	.sensor_i2c_addr = 0x6E,
-	.vreg_seq = s5k3l1yx_veg_seq,
-	.num_vreg_seq = ARRAY_SIZE(s5k3l1yx_veg_seq),
 	.sensor_output_reg_addr = &s5k3l1yx_reg_addr,
 	.sensor_id_info = &s5k3l1yx_id_info,
 	.sensor_exp_gain_info = &s5k3l1yx_exp_gain_info,
 	.cam_mode = MSM_SENSOR_MODE_INVALID,
+	.csi_params = &s5k3l1yx_csi_params_array[0],
 	.msm_sensor_mutex = &s5k3l1yx_mut,
 	.sensor_i2c_driver = &s5k3l1yx_i2c_driver,
 	.sensor_v4l2_subdev_info = s5k3l1yx_subdev_info,
@@ -693,6 +693,5 @@ static struct msm_sensor_ctrl_t s5k3l1yx_s_ctrl = {
 };
 
 module_init(msm_sensor_init_module);
-module_exit(msm_sensor_exit_module);
 MODULE_DESCRIPTION("Samsung 12MP Bayer sensor driver");
 MODULE_LICENSE("GPL v2");

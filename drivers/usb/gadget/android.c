@@ -24,6 +24,7 @@
 #include <linux/utsname.h>
 #include <linux/platform_device.h>
 #include <linux/pm_qos.h>
+#include <linux/wakelock.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/composite.h>
@@ -34,6 +35,8 @@
 #ifndef DEBUG
 #define DEBUG 1
 #endif
+//supply cdrom hook, mass_storage invke the function
+static int android_is_set_cdrom(void);
 /*
  * Kbuild is not very cooperative with respect to linking separately
  * compiled library objects into one module.  So for now we won't use
@@ -237,6 +240,8 @@ enum android_device_state {
 	USB_CONFIGURED,
 };
 
+struct wake_lock android_wlock;
+
 static void android_pm_qos_update_latency(struct android_dev *dev, int vote)
 {
 	struct android_usb_platform_data *pdata = dev->pdata;
@@ -317,6 +322,8 @@ static void android_work(struct work_struct *data)
 		pr_info("%s: did not send uevent (%d %d %p)\n", __func__,
 			 dev->connected, dev->sw_connected, cdev->config);
 	}
+
+	wake_lock_timeout(&android_wlock, HZ / 2);
 }
 
 static void android_enable(struct android_dev *dev)
@@ -1578,8 +1585,13 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		config->fsg.luns[1].removable = 1;
 		name[1] = "lun0";
 	}
-
+	//cdrom default value set 1, it may be changed in inquiry process using android_is_set_cdrom
+	//whether cdrom or mass_storage depends on host OS
+	config->fsg.luns[0].cdrom = 1;
+	config->fsg.luns[0].ro = 1;
 	config->fsg.luns[0].removable = 1;
+	config->fsg.luns[0].nofua = 1;
+
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);
 	if (IS_ERR(common)) {
@@ -2400,6 +2412,13 @@ static struct usb_composite_driver android_usb_driver = {
 	.max_speed	= USB_SPEED_SUPER
 };
 
+static int android_is_set_cdrom(void)
+{
+	struct android_dev *dev = NULL;
+	u8 sys_state = dev->cdev->gadget->usb_sys_state;
+	return sys_state == GADGET_STATE_DONE_SET ? 0 : 1;
+}
+
 static int
 android_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *c)
 {
@@ -2683,6 +2702,7 @@ static int __init init(void)
 
 	INIT_LIST_HEAD(&android_dev_list);
 	android_dev_count = 0;
+	wake_lock_init(&android_wlock, WAKE_LOCK_SUSPEND, "android_work");
 
 	ret = platform_driver_register(&android_platform_driver);
 	if (ret) {

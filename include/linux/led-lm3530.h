@@ -60,6 +60,7 @@
 
 enum lm3530_mode {
 	LM3530_BL_MODE_MANUAL = 0,	/* "man" */
+	LM3530_BL_MODE_I2C_PWM,		/* "man + pwm" */
 	LM3530_BL_MODE_ALS,		/* "als" */
 	LM3530_BL_MODE_PWM,		/* "pwm" */
 };
@@ -116,6 +117,10 @@ struct lm3530_platform_data {
 	u8 brt_val;
 
 	struct lm3530_pwm_data pwm_data;
+	unsigned int bl_en_gpio;
+	bool regulator_used;
 };
 
+void lm3530_gpio_en(bool enable);
+void backlight_brightness_set(int brt_val);
 #endif	/* _LINUX_LED_LM3530_H__ */

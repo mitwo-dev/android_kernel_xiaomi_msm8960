@@ -681,6 +681,20 @@ config BU52031NVX_POUCHDETECT
 	help
 	  depends on BU52031NVX
 
+config AUDIENCE_ES310
+	tristate "Support for Audience ES310 chip"
+	depends on I2C
+	default n
+	help
+	  Enable support for Audience ES310 chip
+
+config AUDIENCE_ES310_US
+	tristate "Support for Audience ES310 chip uart streaming"
+	depends on AUDIENCE_ES310
+	default n
+	help
+	  Enable support for Audience ES310 chip uart streaming
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

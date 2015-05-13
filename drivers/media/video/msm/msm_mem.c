@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/export.h>
 #include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/types.h>
@@ -116,7 +117,7 @@ static int check_overlap(struct hlist_head *ptype,
 }
 
 static int msm_pmem_table_add(struct hlist_head *ptype,
-	struct msm_pmem_info *info, struct ion_client *client, int domain_num)
+	struct msm_pmem_info *info, struct ion_client *client)
 {
 	unsigned long paddr;
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -135,7 +136,7 @@ static int msm_pmem_table_add(struct hlist_head *ptype,
 	region->handle = ion_import_dma_buf(client, info->fd);
 	if (IS_ERR_OR_NULL(region->handle))
 		goto out1;
-	if (ion_map_iommu(client, region->handle, domain_num, 0,
+	if (ion_map_iommu(client, region->handle, CAMERA_DOMAIN, GEN_POOL,
 				  SZ_4K, 0, &paddr, &len, 0, 0) < 0)
 		goto out2;
 #elif CONFIG_ANDROID_PMEM
@@ -180,7 +181,7 @@ static int msm_pmem_table_add(struct hlist_head *ptype,
 	return 0;
 out3:
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	ion_unmap_iommu(client, region->handle, domain_num, 0);
+	ion_unmap_iommu(client, region->handle, CAMERA_DOMAIN, GEN_POOL);
 #endif
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 out2:
@@ -195,8 +196,7 @@ out:
 }
 
 static int __msm_register_pmem(struct hlist_head *ptype,
-			struct msm_pmem_info *pinfo, struct ion_client *client,
-			int domain_num)
+			struct msm_pmem_info *pinfo, struct ion_client *client)
 {
 	int rc = 0;
 
@@ -209,10 +209,7 @@ static int __msm_register_pmem(struct hlist_head *ptype,
 	case MSM_PMEM_IHIST:
 	case MSM_PMEM_SKIN:
 	case MSM_PMEM_AEC_AWB:
-	case MSM_PMEM_BAYER_GRID:
-	case MSM_PMEM_BAYER_FOCUS:
-	case MSM_PMEM_BAYER_HIST:
-		rc = msm_pmem_table_add(ptype, pinfo, client, domain_num);
+		rc = msm_pmem_table_add(ptype, pinfo, client);
 		break;
 
 	default:
@@ -224,8 +221,7 @@ static int __msm_register_pmem(struct hlist_head *ptype,
 }
 
 static int __msm_pmem_table_del(struct hlist_head *ptype,
-			struct msm_pmem_info *pinfo, struct ion_client *client,
-			int domain_num)
+			struct msm_pmem_info *pinfo, struct ion_client *client)
 {
 	int rc = 0;
 	struct msm_pmem_region *region;
@@ -240,9 +236,6 @@ static int __msm_pmem_table_del(struct hlist_head *ptype,
 	case MSM_PMEM_IHIST:
 	case MSM_PMEM_SKIN:
 	case MSM_PMEM_AEC_AWB:
-	case MSM_PMEM_BAYER_GRID:
-	case MSM_PMEM_BAYER_FOCUS:
-	case MSM_PMEM_BAYER_HIST:
 		hlist_for_each_entry_safe(region, node, n,
 				ptype, list) {
 
@@ -252,7 +245,7 @@ static int __msm_pmem_table_del(struct hlist_head *ptype,
 				hlist_del(node);
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 				ion_unmap_iommu(client, region->handle,
-					domain_num, 0);
+					CAMERA_DOMAIN, GEN_POOL);
 				ion_free(client, region->handle);
 #else
 				put_pmem_file(region->file);
@@ -396,8 +389,7 @@ unsigned long msm_pmem_stats_ptov_lookup(
 }
 
 int msm_register_pmem(struct hlist_head *ptype, void __user *arg,
-					struct ion_client *client,
-					int domain_num)
+					  struct ion_client *client)
 {
 	struct msm_pmem_info info;
 
@@ -406,12 +398,12 @@ int msm_register_pmem(struct hlist_head *ptype, void __user *arg,
 			return -EFAULT;
 	}
 
-	return __msm_register_pmem(ptype, &info, client, domain_num);
+	return __msm_register_pmem(ptype, &info, client);
 }
-//EXPORT_SYMBOL(msm_register_pmem);
+EXPORT_SYMBOL(msm_register_pmem);
 
 int msm_pmem_table_del(struct hlist_head *ptype, void __user *arg,
-			struct ion_client *client, int domain_num)
+					   struct ion_client *client)
 {
 	struct msm_pmem_info info;
 
@@ -420,6 +412,6 @@ int msm_pmem_table_del(struct hlist_head *ptype, void __user *arg,
 		return -EFAULT;
 	}
 
-	return __msm_pmem_table_del(ptype, &info, client, domain_num);
+	return __msm_pmem_table_del(ptype, &info, client);
 }
-//EXPORT_SYMBOL(msm_pmem_table_del);
+EXPORT_SYMBOL(msm_pmem_table_del);

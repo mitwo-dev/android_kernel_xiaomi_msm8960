@@ -999,11 +999,15 @@ static uint32_t pm8xxx_adc_btm_read(uint32_t channel)
 	if (rc < 0)
 		goto write_err;
 
-	if (pmic_adc->batt.btm_warm_fn != NULL)
+	if (pmic_adc->batt.btm_warm_fn != NULL) {
 		enable_irq(adc_pmic->btm_warm_irq);
+		enable_irq_wake(adc_pmic->btm_warm_irq);
+	}
 
-	if (pmic_adc->batt.btm_cool_fn != NULL)
+	if (pmic_adc->batt.btm_cool_fn != NULL) {
 		enable_irq(adc_pmic->btm_cool_irq);
+		enable_irq_wake(adc_pmic->btm_cool_irq);
+	}
 
 write_err:
 	spin_unlock_irqrestore(&adc_pmic->btm_lock, flags);
@@ -1022,6 +1026,9 @@ uint32_t pm8xxx_adc_btm_end(void)
 	int i, rc;
 	u8 data_arb_btm_cntrl = 0;
 	unsigned long flags;
+
+	disable_irq_wake(adc_pmic->btm_warm_irq);
+	disable_irq_wake(adc_pmic->btm_cool_irq);
 
 	disable_irq_nosync(adc_pmic->btm_warm_irq);
 	disable_irq_nosync(adc_pmic->btm_cool_irq);

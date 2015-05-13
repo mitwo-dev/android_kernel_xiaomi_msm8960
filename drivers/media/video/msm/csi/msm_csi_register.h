@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,4 +13,4 @@
 
 int msm_csi_register_subdevs(struct msm_cam_media_controller *p_mctl,
 	int core_index,
-	struct msm_cam_server_dev *server_dev);
+	int (*msm_mctl_subdev_match_core)(struct device *, void *));

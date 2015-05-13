@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/kmod.h>
 #include <linux/ctype.h>
 #include <linux/genhd.h>
@@ -427,7 +428,7 @@ int rescan_partitions(struct gendisk *disk, struct block_device *bdev)
 	int p, highest, res;
 rescan:
 	if (state && !IS_ERR(state)) {
-		kfree(state);
+		vfree(state);
 		state = NULL;
 	}
 
@@ -534,7 +535,7 @@ rescan:
 			md_autodetect_dev(part_to_dev(part)->devt);
 #endif
 	}
-	kfree(state);
+	vfree(state);
 	return 0;
 }
 

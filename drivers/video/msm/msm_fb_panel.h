@@ -59,12 +59,6 @@ typedef enum {
 /* panel info type */
 struct lcd_panel_info {
 	__u32 vsync_enable;
-	__u32 primary_vsync_init;
-	__u32 primary_rdptr_irq;
-	__u32 primary_start_pos;
-	__u32 vsync_threshold_continue;
-	__u32 vsync_threshold_start;
-	__u32 total_lines;
 	__u32 refx100;
 	__u32 v_back_porch;
 	__u32 v_front_porch;
@@ -199,6 +193,7 @@ struct msm_fb_panel_data {
 	void (*set_vsync_notifier) (msm_fb_vsync_handler_type, void *arg);
 	void (*set_backlight) (struct msm_fb_data_type *);
 	int (*get_backlight_on_status) (void);
+	void (*set_dispparam) (int param);
 
 	/* function entry chain */
 	int (*on) (struct platform_device *pdev);

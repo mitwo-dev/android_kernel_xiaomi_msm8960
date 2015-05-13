@@ -987,6 +987,8 @@ static int __cpuinit acpuclk_cpu_callback(struct notifier_block *nfb,
 	case CPU_UP_CANCELED:
 		acpuclk_krait_set_rate(cpu, hot_unplug_khz, SETRATE_HOTPLUG);
 		regulator_set_optimum_mode(sc->vreg[VREG_CORE].reg, 0);
+		if (!prev_khz[cpu])
+			prev_khz[cpu] = -1;
 		break;
 	case CPU_UP_PREPARE:
 		if (!sc->initialized) {

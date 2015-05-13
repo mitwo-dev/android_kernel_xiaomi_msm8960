@@ -46,7 +46,7 @@ static void stop_drawing_early_suspend(struct early_suspend *h)
 				 HZ);
 	if (unlikely(fb_state != FB_STATE_STOPPED_DRAWING))
 		pr_warning("stop_drawing_early_suspend: timeout waiting for "
-			   "userspace to stop drawing\n");
+				   "userspace to stop drawing\n");
 }
 
 /* tell userspace to start drawing */

@@ -14,6 +14,7 @@
  */
 
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/ctype.h>
 #include <linux/genhd.h>
 
@@ -112,12 +113,20 @@ check_partition(struct gendisk *hd, struct block_device *bdev)
 	struct parsed_partitions *state;
 	int i, res, err;
 
-	state = kzalloc(sizeof(struct parsed_partitions), GFP_KERNEL);
-	if (!state)
+	/*
+	original sizeof(struct parsed_partitions) = 26848, if malloc with kzalloc
+	we need	a physically continues 8-page memory and this mallocing will occasionally
+	fail after the system running for some hours. Now we use vzalloc to solve
+	this issue because enuming partitions is not so emergecy and frequet.
+	*/
+	state = vzalloc(sizeof(struct parsed_partitions));
+	if (!state) {
+		printk(KERN_WARNING  "struct parsed_partitions malloc failed\n");
 		return NULL;
+	}
 	state->pp_buf = (char *)__get_free_page(GFP_KERNEL);
 	if (!state->pp_buf) {
-		kfree(state);
+		vfree(state);
 		return NULL;
 	}
 	state->pp_buf[0] = '\0';
@@ -161,6 +170,6 @@ check_partition(struct gendisk *hd, struct block_device *bdev)
 	printk(KERN_INFO "%s", state->pp_buf);
 
 	free_page((unsigned long)state->pp_buf);
-	kfree(state);
+	vfree(state);
 	return ERR_PTR(res);
 }

@@ -126,8 +126,8 @@ static void msm_iommu_reset(void __iomem *base, int ncb)
 static int msm_iommu_probe(struct platform_device *pdev)
 {
 	struct resource *r, *r2;
-	struct clk *iommu_clk = NULL;
-	struct clk *iommu_pclk = NULL;
+	struct clk *iommu_clk;
+	struct clk *iommu_pclk;
 	struct msm_iommu_drvdata *drvdata;
 	struct msm_iommu_dev *iommu_dev = pdev->dev.platform_data;
 	void __iomem *regs_base;

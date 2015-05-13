@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,7 +16,8 @@
 
 #include <linux/i2c.h>
 #include <linux/types.h>
-#include <linux/mhl_defs.h>
+
+#include "mhl_defs.h"
 
 /*
  * I2C command to the adapter to append

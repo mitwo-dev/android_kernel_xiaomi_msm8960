@@ -351,12 +351,33 @@ static ssize_t msm_fb_msm_fb_type(struct device *dev,
 	return ret;
 }
 
+static ssize_t msm_fb_set_dispparam(struct device *dev,
+				  struct device_attribute *attr, const char *buf, size_t size)
+{
+	int param;
+	struct fb_info *fbi = dev_get_drvdata(dev);
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
+	struct msm_fb_panel_data *pdata =
+		(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+
+	sscanf(buf, "%u", &param);
+
+	if (!mfd->panel_power_on) {
+		return size;
+	}
+
+	pdata->set_dispparam(param);
+	return size;
+}
+
 static DEVICE_ATTR(msm_fb_type, S_IRUGO, msm_fb_msm_fb_type, NULL);
 static DEVICE_ATTR(msm_fb_fps_level, S_IRUGO | S_IWUSR | S_IWGRP, NULL, \
 				msm_fb_fps_level_change);
+static DEVICE_ATTR(msm_fb_dispparam, 0644, NULL, msm_fb_set_dispparam);
 static struct attribute *msm_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
 	&dev_attr_msm_fb_fps_level.attr,
+	&dev_attr_msm_fb_dispparam.attr,
 	NULL,
 };
 static struct attribute_group msm_fb_attr_group = {
@@ -3843,6 +3864,13 @@ static int msmfb_display_commit(struct fb_info *info,
 {
 	int ret;
 	struct mdp_display_commit disp_commit;
+	static int blon = 3;
+
+	if (blon) {
+		blon -= 1;
+		return 0;
+	}
+
 	ret = copy_from_user(&disp_commit, argp,
 			sizeof(disp_commit));
 	if (ret) {
@@ -3870,6 +3898,21 @@ static int msmfb_get_metadata(struct msm_fb_data_type *mfd,
 		break;
 	}
 	return ret;
+}
+
+static int msmfb_disp_param_set(struct fb_info *info, void __user *p)
+{
+	int param;
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+	struct msm_fb_panel_data *pdata;
+
+	if (copy_from_user(&param, p, sizeof(param)))
+		return -EFAULT;
+
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+	pdata->set_dispparam(param);
+
+	return 0;
 }
 
 static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
@@ -4206,6 +4249,12 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			ret = copy_to_user(argp, &mdp_metadata,
 				sizeof(mdp_metadata));
 
+		break;
+
+	case MSMFB_DISP_PARAM_CTRL:
+		down(&msm_fb_ioctl_ppp_sem);
+		ret = msmfb_disp_param_set(info, argp);
+		up(&msm_fb_ioctl_ppp_sem);
 		break;
 
 	default:

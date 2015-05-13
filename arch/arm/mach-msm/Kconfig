@@ -884,6 +884,12 @@ config MACH_APQ8064_MTP
 	help
 	  Support for the Qualcomm APQ8064 MTP device.
 
+config MACH_MITWO
+	depends on ARCH_APQ8064
+	bool "APQ8064 MITWO"
+	help
+	  Support for the XIAOMI MITWO device.
+
 config MACH_APQ8064_LIQUID
 	depends on ARCH_APQ8064
 	bool "APQ8064 LIQUID"
@@ -994,6 +1000,12 @@ choice
 	config MSM_AMSS_VERSION_6225
 		bool "6.2.20 + New ADSP"
 endchoice
+
+config MSM_UART_HS_USE_HS
+	bool "Use HS while not UART"
+	default y
+	help
+	  Say Y here if HS used in user build.
 
 config MSM_HAS_DEBUG_UART_HS
 	bool
@@ -2597,4 +2609,9 @@ config MSM_USE_USER_ACCESSIBLE_TIMERS
 	  Enables MSM-specific user accessible timers via a shared
 	  memory page containing the cycle counter.
 
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
 endif

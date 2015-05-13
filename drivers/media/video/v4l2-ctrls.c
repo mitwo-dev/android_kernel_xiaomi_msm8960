@@ -890,6 +890,7 @@ static void send_event(struct v4l2_fh *fh, struct v4l2_ctrl *ctrl, u32 changes)
 
 	if (list_empty(&ctrl->ev_subs))
 		return;
+        memset(&ev, 0, sizeof(struct v4l2_event));
 	fill_event(&ev, ctrl, changes);
 
 	list_for_each_entry(sev, &ctrl->ev_subs, node)
@@ -2414,7 +2415,7 @@ void v4l2_ctrl_add_event(struct v4l2_ctrl *ctrl,
 	    (sev->flags & V4L2_EVENT_SUB_FL_SEND_INITIAL)) {
 		struct v4l2_event ev;
 		u32 changes = V4L2_EVENT_CTRL_CH_FLAGS;
-
+        memset(&ev, 0, sizeof(struct v4l2_event));
 		if (!(ctrl->flags & V4L2_CTRL_FLAG_WRITE_ONLY))
 			changes |= V4L2_EVENT_CTRL_CH_VALUE;
 		fill_event(&ev, ctrl, changes);

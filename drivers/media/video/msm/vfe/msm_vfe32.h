@@ -14,7 +14,6 @@
 #define __MSM_VFE32_H__
 
 #include <linux/bitops.h>
-#include "msm_vfe_stats_buf.h"
 
 #define TRUE  1
 #define FALSE 0
@@ -62,12 +61,6 @@
  * bit 26-32 = 0, domain reset, bit 0-9 = 1 for module reset. */
 #define VFE_RESET_UPON_RESET_CMD  0x000003ff
 
-/* reset the vfe only when reset command*/
-#define VFE_ONLY_RESET_CMD  0x00000002
-
-/*Vfe module reset command*/
-#define VFE_MODULE_RESET_CMD 0x07ffffff
-
 /* bit 5 is for axi status idle or busy.
  * 1 =  halted,  0 = busy */
 #define AXI_STATUS_BUSY_MASK 0x00000020
@@ -110,13 +103,12 @@
 #define VFE_IRQ_STATUS1_RESET_AXI_HALT_ACK_MASK   0x00800000
 #define VFE_IRQ_STATUS0_STATS_COMPOSIT_MASK       0x01000000
 
-#define VFE_IRQ_STATUS0_STATS_AEC_BG    0x2000  /* bit 13 */
-#define VFE_IRQ_STATUS0_STATS_AF_BF     0x4000  /* bit 14 */
-#define VFE_IRQ_STATUS0_STATS_AWB       0x8000  /* bit 15 */
-#define VFE_IRQ_STATUS0_STATS_RS        0x10000  /* bit 16 */
-#define VFE_IRQ_STATUS0_STATS_CS        0x20000  /* bit 17 */
-#define VFE_IRQ_STATUS0_STATS_IHIST     0x40000  /* bit 18 */
-#define VFE_IRQ_STATUS0_STATS_SK_BHIST  0x80000 /* bit 19 */
+#define VFE_IRQ_STATUS0_STATS_AEC     0x2000  /* bit 13 */
+#define VFE_IRQ_STATUS0_STATS_AF      0x4000  /* bit 14 */
+#define VFE_IRQ_STATUS0_STATS_AWB     0x8000  /* bit 15 */
+#define VFE_IRQ_STATUS0_STATS_RS      0x10000  /* bit 16 */
+#define VFE_IRQ_STATUS0_STATS_CS      0x20000  /* bit 17 */
+#define VFE_IRQ_STATUS0_STATS_IHIST   0x40000  /* bit 18 */
 
 #define VFE_IRQ_STATUS0_SYNC_TIMER0   0x2000000  /* bit 25 */
 #define VFE_IRQ_STATUS0_SYNC_TIMER1   0x4000000  /* bit 26 */
@@ -128,7 +120,6 @@
 
 #define VFE_IRQ_STATUS1_RDI0_REG_UPDATE_MASK  0x4000000 /*bit 26*/
 #define VFE_IRQ_STATUS1_RDI1_REG_UPDATE_MASK  0x8000000 /*bit 27*/
-#define VFE_IRQ_STATUS1_RDI2_REG_UPDATE_MASK  0x10000000 /*bit 28*/
 
 /*TODOs the irq status passed from axi to vfe irq handler does not account
 * for 2 irq status registers. So below macro is added to differentiate between
@@ -137,7 +128,6 @@
 *status bit*/
 #define VFE_IRQ_STATUS1_RDI0_REG_UPDATE  0x84000000 /*bit 26*/
 #define VFE_IRQ_STATUS1_RDI1_REG_UPDATE  0x88000000 /*bit 27*/
-#define VFE_IRQ_STATUS1_RDI2_REG_UPDATE  0x90000000 /*bit 28*/
 
 /* imask for while waiting for stop ack,  driver has already
  * requested stop, waiting for reset irq, and async timer irq.
@@ -163,14 +153,11 @@
 /* For DBPC bit 0 is set to zero and other's 1 */
 #define DBPC_MASK 0xFFFFFFFE
 
-/* For DBCC bit 1 is set to zero and other's 1 */
+/* For DBPC bit 1 is set to zero and other's 1 */
 #define DBCC_MASK 0xFFFFFFFD
 
-/* For ABCC bit 1 is set to zero and other's 1 */
-#define ABCC_MASK 0xFFFFFFFB
-
 /* For DBPC/ABF/DBCC/ABCC bits are set to 1 all others 0 */
-#define DEMOSAIC_MASK 0x10F
+#define DEMOSAIC_MASK 0xF
 
 /* For MCE enable bit 28 set to zero and other's 1 */
 #define MCE_EN_MASK 0xEFFFFFFF
@@ -186,12 +173,7 @@
 #define RS_CS_ENABLE_MASK 0x00000300   /* bit 8,9  */
 #define CLF_ENABLE_MASK 0x00002000     /* bit 13 */
 #define IHIST_ENABLE_MASK 0x00010000   /* bit 16 */
-#define SKIN_BHIST_ENABLE_MASK 0x00080000 /* bit 19 */
 #define STATS_ENABLE_MASK 0x000903E0   /* bit 19,16,9,8,7,6,5*/
-
-#define STATS_BG_ENABLE_MASK     0x00000002 /* bit 1 */
-#define STATS_BF_ENABLE_MASK     0x00000004 /* bit 2 */
-#define STATS_BHIST_ENABLE_MASK  0x00000008 /* bit 3 */
 
 #define VFE_REG_UPDATE_TRIGGER           1
 #define VFE_PM_BUF_MAX_CNT_MASK          0xFF
@@ -202,11 +184,6 @@
 
 #define HFR_MODE_OFF 1
 #define VFE_FRAME_SKIP_PERIOD_MASK 0x0000001F /*bits 0 -4*/
-
-#define VFE_RELOAD_ALL_WRITE_MASTERS 0x00003FFF
-
-#define VFE_IOMMU_FAULT_HANDLER 1
-#define BUS_OVERFLOW_THRESHOLD  5
 
 enum VFE32_DMI_RAM_SEL {
 	NO_MEM_SELECTED          = 0,
@@ -239,8 +216,6 @@ enum vfe_output_state {
 	VFE_STATE_STARTED,
 	VFE_STATE_STOP_REQUESTED,
 	VFE_STATE_STOPPED,
-	VFE_STATE_HW_STOP_REQUESTED,
-	VFE_STATE_HW_STOPPED,
 };
 
 #define V32_CAMIF_OFF             0x000001E4
@@ -262,15 +237,14 @@ enum vfe_output_state {
 #define V32_OUT_CLAMP_OFF         0x00000524
 #define V32_OUT_CLAMP_LEN         8
 
-#define V32_OPERATION_CFG_LEN     32
+#define V32_OPERATION_CFG_LEN     44
 
-#define V32_AXI_BUS_CMD_OFF       0x00000038
-#define V32_AXI_OUT_OFF           0x0000003C
-#define V32_AXI_OUT_LEN           264
+#define V32_AXI_OUT_OFF           0x00000038
+#define V32_AXI_OUT_LEN           224
+#define V32_AXI_CH_INF_LEN        32
 #define V32_AXI_CFG_LEN           47
-#define V32_AXI_BUS_FMT_OFF       1
-#define V32_AXI_BUS_FMT_LEN       4
-#define V32_AXI_BUS_CFG_LEN       16
+#define V32_AXI_BUS_FMT_OFF    1
+#define V32_AXI_BUS_FMT_LEN    4
 
 #define V32_FRAME_SKIP_OFF        0x00000504
 #define V32_FRAME_SKIP_LEN        32
@@ -317,9 +291,6 @@ enum vfe_output_state {
 #define V33_PCA_ROLL_OFF_CFG_OFF2             0x000007A8
 #define V33_PCA_ROLL_OFF_TABLE_SIZE           (17 + (13*4))
 #define V33_PCA_ROLL_OFF_LUT_BANK_SEL_MASK    0x00010000
-
-#define V33_ABCC_LUT_TABLE_SIZE       512
-#define V33_ABCC_LUT_BANK_SEL_MASK    0x00000100
 
 #define V32_COLOR_COR_OFF 0x00000388
 #define V32_COLOR_COR_LEN 52
@@ -405,15 +376,6 @@ enum vfe_output_state {
 
 #define V32_CLF_CHROMA_UPDATE_OFF 0x000006F0
 #define V32_CLF_CHROMA_UPDATE_LEN 8
-
-#define V32_STATS_BG_OFF 0x00000700
-#define V32_STATS_BG_LEN 12
-
-#define V32_STATS_BF_OFF 0x0000070c
-#define V32_STATS_BF_LEN 24
-
-#define V32_STATS_BHIST_OFF 0x00000724
-#define V32_STATS_BHIST_LEN 8
 
 struct vfe_cmd_hw_version {
 	uint32_t minorVersion;
@@ -555,12 +517,6 @@ enum VFE_YUV_INPUT_COSITING_MODE {
 };
 
 #define VFE32_GAMMA_NUM_ENTRIES  64
-
-#define VFE32_GAMMA_CH0_G_POS    0
-
-#define VFE32_GAMMA_CH1_B_POS    32
-
-#define VFE32_GAMMA_CH2_R_POS    64
 
 #define VFE32_LA_TABLE_LENGTH    64
 
@@ -799,11 +755,11 @@ struct vfe32_free_buf {
 struct vfe32_output_ch {
 	struct list_head free_buf_queue;
 	spinlock_t free_buf_lock;
-	uint32_t inst_handle;
+	uint16_t output_fmt;
 	int8_t ch0;
 	int8_t ch1;
 	int8_t ch2;
-	int32_t  capture_cnt;
+	uint32_t  capture_cnt;
 	uint32_t  frame_drop_cnt;
 	struct msm_free_buf ping;
 	struct msm_free_buf pong;
@@ -814,8 +770,7 @@ struct vfe32_output_ch {
 #define VFE32_IMASK_ERROR_ONLY_0  0x0
 /* when normal case, don't want to block error status. */
 /* bit 0-21 are error irq bits */
-#define VFE32_IMASK_COMMON_ERROR_ONLY_1       0x00407F00
-#define VFE32_IMASK_VFE_ERROR_ONLY_1          0x001F80FF
+#define VFE32_IMASK_ERROR_ONLY_1               0x005FFFFF
 #define VFE32_IMASK_CAMIF_ERROR               (0x00000001<<0)
 #define VFE32_IMASK_BHIST_OVWR                (0x00000001<<1)
 #define VFE32_IMASK_STATS_CS_OVWR             (0x00000001<<2)
@@ -849,7 +804,6 @@ struct vfe32_output_path {
 	struct vfe32_output_ch out1; /* snapshot */
 	struct vfe32_output_ch out2; /* rdi0    */
 	struct vfe32_output_ch out3; /* rdi01   */
-	struct vfe32_output_ch out4; /* rdi02   */
 };
 
 struct vfe32_frame_extra {
@@ -890,12 +844,12 @@ struct vfe32_frame_extra {
 #define VFE_AXI_STATUS        0x000001DC
 #define VFE_BUS_STATS_PING_PONG_BASE    0x000000F4
 
-#define VFE_BUS_STATS_AEC_BG_WR_PING_ADDR    0x000000F4
-#define VFE_BUS_STATS_AEC_BG_WR_PONG_ADDR    0x000000F8
-#define VFE_BUS_STATS_AEC_BG_UB_CFG          0x000000FC
-#define VFE_BUS_STATS_AF_BF_WR_PING_ADDR     0x00000100
-#define VFE_BUS_STATS_AF_BF_WR_PONG_ADDR     0x00000104
-#define VFE_BUS_STATS_AF_BF_UB_CFG           0x00000108
+#define VFE_BUS_STATS_AEC_WR_PING_ADDR    0x000000F4
+#define VFE_BUS_STATS_AEC_WR_PONG_ADDR    0x000000F8
+#define VFE_BUS_STATS_AEC_UB_CFG          0x000000FC
+#define VFE_BUS_STATS_AF_WR_PING_ADDR     0x00000100
+#define VFE_BUS_STATS_AF_WR_PONG_ADDR     0x00000104
+#define VFE_BUS_STATS_AF_UB_CFG           0x00000108
 #define VFE_BUS_STATS_AWB_WR_PING_ADDR    0x0000010C
 #define VFE_BUS_STATS_AWB_WR_PONG_ADDR    0x00000110
 #define VFE_BUS_STATS_AWB_UB_CFG          0x00000114
@@ -909,11 +863,10 @@ struct vfe32_frame_extra {
 #define VFE_BUS_STATS_HIST_WR_PING_ADDR   0x00000130
 #define VFE_BUS_STATS_HIST_WR_PONG_ADDR   0x00000134
 #define VFE_BUS_STATS_HIST_UB_CFG          0x00000138
-#define VFE_BUS_STATS_SKIN_BHIST_WR_PING_ADDR    0x0000013C
-#define VFE_BUS_STATS_SKIN_BHIST_WR_PONG_ADDR    0x00000140
-#define VFE_BUS_STATS_SKIN_BHIST_UB_CFG          0x00000144
+#define VFE_BUS_STATS_SKIN_WR_PING_ADDR    0x0000013C
+#define VFE_BUS_STATS_SKIN_WR_PONG_ADDR    0x00000140
+#define VFE_BUS_STATS_SKIN_UB_CFG          0x00000144
 #define VFE_CAMIF_COMMAND               0x000001E0
-#define VFE_CAMIF_FRAME_CFG		0x000001EC
 #define VFE_CAMIF_STATUS                0x00000204
 #define VFE_REG_UPDATE_CMD              0x00000260
 #define VFE_DEMUX_GAIN_0                0x00000288
@@ -934,7 +887,6 @@ struct vfe32_frame_extra {
 #define VFE_STATS_AWB_SGW_CFG           0x00000554
 #define VFE_DMI_CFG                     0x00000598
 #define VFE_DMI_ADDR                    0x0000059C
-#define VFE_DMI_DATA_HI                 0x000005A0
 #define VFE_DMI_DATA_LO                 0x000005A4
 #define VFE_AXI_CFG                     0x00000600
 #define VFE_BUS_IO_FORMAT_CFG           0x000006F8
@@ -946,7 +898,8 @@ struct vfe32_frame_extra {
 
 #define VFE33_DMI_DATA_HI               0x000005A0
 #define VFE33_DMI_DATA_LO               0x000005A4
-#define VFE_AXI_CFG_MASK                0x80000000
+
+#define VFE_AXI_CFG_MASK                0xFFFFFFFF
 
 #define VFE32_OUTPUT_MODE_PT			BIT(0)
 #define VFE32_OUTPUT_MODE_S			BIT(1)
@@ -960,71 +913,12 @@ struct vfe32_frame_extra {
 #define VFE32_OUTPUT_MODE_SECONDARY_ALL_CHNLS	BIT(9)
 #define VFE32_OUTPUT_MODE_TERTIARY1		BIT(10)
 #define VFE32_OUTPUT_MODE_TERTIARY2		BIT(11)
-#define VFE32_OUTPUT_MODE_TERTIARY3		BIT(12)
 
 struct vfe_stats_control {
+	uint8_t  ackPending;
+	uint32_t nextFrameAddrBuf;
 	uint32_t droppedStatsFrameCount;
 	uint32_t bufToRender;
-};
-struct axi_ctrl_t;
-struct vfe32_ctrl_type;
-
-struct vfe_share_ctrl_t {
-	void __iomem *vfebase;
-	uint32_t register_total;
-
-	atomic_t vstate;
-	atomic_t handle_common_irq;
-	uint32_t vfeFrameId;
-	uint32_t rdi0FrameId;
-	uint32_t rdi1FrameId;
-	uint32_t rdi2FrameId;
-	uint32_t stats_comp;
-	spinlock_t  sd_notify_lock;
-	spinlock_t  stop_flag_lock;
-	int8_t stop_ack_pending;
-	enum vfe_output_state liveshot_state;
-	uint32_t vfe_capture_count;
-	int32_t rdi0_capture_count;
-	int32_t rdi1_capture_count;
-	int32_t rdi2_capture_count;
-	uint8_t update_counter;
-
-	uint32_t operation_mode;     /* streaming or snapshot */
-	uint32_t current_mode;
-	struct vfe32_output_path outpath;
-
-	uint16_t port_info;
-	uint8_t stop_immediately;
-	uint8_t sync_abort;
-	uint16_t cmd_type;
-	uint8_t vfe_reset_flag;
-	uint8_t dual_enabled;
-	uint8_t lp_mode;
-
-	uint8_t axi_ref_cnt;
-	uint16_t comp_output_mode;
-
-	struct completion reset_complete;
-
-	spinlock_t  update_ack_lock;
-	spinlock_t  start_ack_lock;
-
-	struct axi_ctrl_t *axi_ctrl;
-	struct vfe32_ctrl_type *vfe32_ctrl;
-	int8_t start_ack_pending;
-	int8_t update_ack_pending;
-	enum vfe_output_state recording_state;
-
-	atomic_t pix0_update_ack_pending;
-	atomic_t rdi0_update_ack_pending;
-	atomic_t rdi1_update_ack_pending;
-	atomic_t rdi2_update_ack_pending;
-
-	uint8_t stream_error;
-	uint32_t rdi_comp;
-	uint32_t overflow_count;
-	uint8_t stop_issued;
 };
 
 struct axi_ctrl_t {
@@ -1034,6 +928,7 @@ struct axi_ctrl_t {
 	spinlock_t  tasklet_lock;
 	struct list_head tasklet_q;
 
+	void __iomem *vfebase;
 	void *syncdata;
 
 	struct resource	*vfemem;
@@ -1041,51 +936,74 @@ struct axi_ctrl_t {
 	struct regulator *fs_vfe;
 	struct clk *vfe_clk[3];
 	struct tasklet_struct vfe32_tasklet;
-	struct vfe_share_ctrl_t *share_ctrl;
-	struct device *iommu_ctx_imgwr;
-	struct device *iommu_ctx_misc;
-	uint32_t simultaneous_sof_frame;
 };
 
 struct vfe32_ctrl_type {
+	uint16_t operation_mode;     /* streaming or snapshot */
+	struct vfe32_output_path outpath;
+
+	uint32_t vfeImaskCompositePacked;
+
+	spinlock_t  stop_flag_lock;
+	spinlock_t  update_ack_lock;
+	spinlock_t  start_ack_lock;
 	spinlock_t  state_lock;
-	spinlock_t  stats_bufq_lock;
+	spinlock_t  io_lock;
+
+	spinlock_t  aec_ack_lock;
+	spinlock_t  awb_ack_lock;
+	spinlock_t  af_ack_lock;
+	spinlock_t  ihist_ack_lock;
+	spinlock_t  rs_ack_lock;
+	spinlock_t  cs_ack_lock;
+	spinlock_t  comp_stats_ack_lock;
+
 	uint32_t extlen;
 	void *extdata;
 
-	int8_t vfe_sof_count_enable;
+	int8_t start_ack_pending;
+	int8_t stop_ack_pending;
+	int8_t reset_ack_pending;
+	int8_t update_ack_pending;
+	enum vfe_output_state recording_state;
 	int8_t update_linear;
 	int8_t update_rolloff;
 	int8_t update_la;
 	int8_t update_gamma;
-	int8_t update_abcc;
+	enum vfe_output_state liveshot_state;
 
-	struct vfe_share_ctrl_t *share_ctrl;
+	void __iomem *vfebase;
+	uint32_t register_total;
 
+	uint32_t stats_comp;
+	atomic_t vstate;
+	uint32_t vfe_capture_count;
 	uint32_t sync_timer_repeat_count;
 	uint32_t sync_timer_state;
 	uint32_t sync_timer_number;
 
-	struct msm_ver_num_info ver_num;
-	struct vfe_stats_control afbfStatsControl;
+	uint32_t vfeFrameId;
+	uint32_t output1Pattern;
+	uint32_t output1Period;
+	uint32_t output2Pattern;
+	uint32_t output2Period;
+	uint32_t vfeFrameSkipCount;
+	uint32_t vfeFrameSkipPeriod;
+	struct vfe_stats_control afStatsControl;
 	struct vfe_stats_control awbStatsControl;
-	struct vfe_stats_control aecbgStatsControl;
+	struct vfe_stats_control aecStatsControl;
 	struct vfe_stats_control ihistStatsControl;
 	struct vfe_stats_control rsStatsControl;
 	struct vfe_stats_control csStatsControl;
-	struct vfe_stats_control bhistStatsControl;
 
 	/* v4l2 subdev */
 	struct v4l2_subdev subdev;
 	struct platform_device *pdev;
+	spinlock_t  sd_notify_lock;
 	uint32_t hfr_mode;
 	uint32_t frame_skip_cnt;
 	uint32_t frame_skip_pattern;
 	uint32_t snapshot_frame_cnt;
-	struct msm_stats_bufq_ctrl stats_ctrl;
-	struct msm_stats_ops stats_ops;
-
-	uint32_t simultaneous_sof_stat;
 };
 
 #define statsAeNum      0
@@ -1105,5 +1023,17 @@ struct vfe_cmd_stats_ack {
 struct vfe_cmd_stats_buf {
 	uint32_t statsBuf[VFE_STATS_BUFFER_COUNT];
 };
+
+#define VIDIOC_MSM_AXI_INIT \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 18, struct msm_cam_media_controller *)
+
+#define VIDIOC_MSM_AXI_RELEASE \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 19, struct msm_cam_media_controller *)
+
+#define VIDIOC_MSM_AXI_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 20, void *)
+
+#define VIDIOC_MSM_AXI_IRQ \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 21, void *)
 
 #endif /* __MSM_VFE32_H__ */

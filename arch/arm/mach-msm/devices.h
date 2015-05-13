@@ -89,6 +89,7 @@ extern struct platform_device msm8960_device_ebi1_ch1_erp;
 extern struct platform_device apq8064_device_uart_gsbi1;
 extern struct platform_device apq8064_device_uart_gsbi3;
 extern struct platform_device apq8064_device_uart_gsbi4;
+extern struct platform_device apq8064_device_uart_gsbi5;
 extern struct platform_device apq8064_device_uartdm_gsbi4;
 extern struct platform_device apq8064_device_uart_gsbi7;
 extern struct platform_device apq8064_device_qup_i2c_gsbi1;
@@ -331,6 +332,9 @@ extern struct platform_device qfec_device;
 extern struct platform_device msm_kgsl_3d0;
 extern struct platform_device msm_kgsl_2d0;
 extern struct platform_device msm_kgsl_2d1;
+
+extern struct resource kgsl_3d0_resources_8960ab[];
+extern int kgsl_num_resources_8960ab;
 
 extern struct platform_device msm_mipi_dsi1_device;
 extern struct platform_device mipi_dsi_device;

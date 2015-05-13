@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * Based on videobuf-dma-contig.c,
  * (c) 2008 Magnus Damm
@@ -56,13 +56,13 @@ static unsigned long msm_mem_allocate(struct videobuf2_contig_pmem *mem)
 		goto client_failed;
 	}
 	mem->ion_handle = ion_alloc(mem->client, mem->size, SZ_4K,
-		(0x1 << ION_CP_MM_HEAP_ID | 0x1 << ION_IOMMU_HEAP_ID), 0);
+                                    (0x1 << ION_CP_MM_HEAP_ID | 0x1 << ION_IOMMU_HEAP_ID), 0);
 	if (IS_ERR((void *)mem->ion_handle)) {
 		pr_err("%s Could not allocate\n", __func__);
 		goto alloc_failed;
 	}
 	rc = ion_map_iommu(mem->client, mem->ion_handle,
-			-1, 0, SZ_4K, 0,
+			CAMERA_DOMAIN, GEN_POOL, SZ_4K, 0,
 			(unsigned long *)&phyaddr,
 			(unsigned long *)&len, 0, 0);
 	if (rc < 0) {
@@ -87,7 +87,7 @@ static int32_t msm_mem_free(struct videobuf2_contig_pmem *mem)
 {
 	int32_t rc = 0;
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	ion_unmap_iommu(mem->client, mem->ion_handle, -1, 0);
+	ion_unmap_iommu(mem->client, mem->ion_handle, CAMERA_DOMAIN, GEN_POOL);
 	ion_free(mem->client, mem->ion_handle);
 	ion_client_destroy(mem->client);
 #else
@@ -174,8 +174,7 @@ int videobuf2_pmem_contig_user_get(struct videobuf2_contig_pmem *mem,
 					struct videobuf2_msm_offset *offset,
 					enum videobuf2_buffer_type buffer_type,
 					uint32_t addr_offset, int path,
-					struct ion_client *client,
-					int domain_num)
+					struct ion_client *client)
 {
 	unsigned long len;
 	int rc = 0;
@@ -191,7 +190,7 @@ int videobuf2_pmem_contig_user_get(struct videobuf2_contig_pmem *mem,
 		pr_err("%s ION import failed\n", __func__);
 		return PTR_ERR(mem->ion_handle);
 	}
-	rc = ion_map_iommu(client, mem->ion_handle, domain_num, 0,
+	rc = ion_map_iommu(client, mem->ion_handle, CAMERA_DOMAIN, GEN_POOL,
 		SZ_4K, 0, (unsigned long *)&mem->phyaddr, &len, 0, 0);
 	if (rc < 0)
 		ion_free(client, mem->ion_handle);
@@ -221,7 +220,7 @@ int videobuf2_pmem_contig_user_get(struct videobuf2_contig_pmem *mem,
 EXPORT_SYMBOL_GPL(videobuf2_pmem_contig_user_get);
 
 void videobuf2_pmem_contig_user_put(struct videobuf2_contig_pmem *mem,
-				struct ion_client *client, int domain_num)
+					struct ion_client *client)
 {
 	if (mem->is_userptr) {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -230,7 +229,7 @@ void videobuf2_pmem_contig_user_put(struct videobuf2_contig_pmem *mem,
 		return;
 	}
 		ion_unmap_iommu(client, mem->ion_handle,
-				domain_num, 0);
+				CAMERA_DOMAIN, GEN_POOL);
 		ion_free(client, mem->ion_handle);
 #elif CONFIG_ANDROID_PMEM
 		put_pmem_file(mem->file);

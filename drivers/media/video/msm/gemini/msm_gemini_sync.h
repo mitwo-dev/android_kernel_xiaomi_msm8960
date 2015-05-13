@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010,2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -76,7 +76,7 @@ struct msm_gemini_device {
 	struct v4l2_subdev subdev;
 	enum msm_gmn_out_mode out_mode;
 
-	/*single out mode parameters*/
+	/* single out mode parameters */
 	struct msm_gemini_hw_buf out_buf;
 	int out_offset;
 	int out_buf_set;
@@ -84,7 +84,6 @@ struct msm_gemini_device {
 	int out_frag_cnt;
 
 	uint32_t bus_perf_client;
-	uint32_t core_reset;
 };
 
 int __msm_gemini_open(struct msm_gemini_device *pgmn_dev);

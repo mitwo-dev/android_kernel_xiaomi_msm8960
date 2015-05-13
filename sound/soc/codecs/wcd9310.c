@@ -104,13 +104,13 @@ struct tabla_codec_dai_data {
 
 #define TABLA_MBHC_BUTTON_MIN 0x8000
 
-#define TABLA_MBHC_FAKE_INSERT_LOW 10
+#define TABLA_MBHC_FAKE_INSERT_LOW 30
 #define TABLA_MBHC_FAKE_INSERT_HIGH 80
 #define TABLA_MBHC_FAKE_INS_HIGH_NO_GPIO 150
 
 #define TABLA_MBHC_STATUS_REL_DETECTION 0x0C
 
-#define TABLA_MBHC_GPIO_REL_DEBOUNCE_TIME_MS 50
+#define TABLA_MBHC_GPIO_REL_DEBOUNCE_TIME_MS 20
 
 #define TABLA_MBHC_FAKE_INS_DELTA_MV 200
 #define TABLA_MBHC_FAKE_INS_DELTA_SCALED_MV 300
@@ -2301,9 +2301,9 @@ static int tabla_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, lineout_gain_reg, 0x40, 0x40);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
-		pr_debug("%s: sleeping 16 us after %s PA turn on\n",
+		pr_debug("%s: sleeping 16 ms after %s PA turn on\n",
 				__func__, w->name);
-		usleep_range(16, 16);
+		usleep_range(16000, 16000);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		snd_soc_update_bits(codec, lineout_gain_reg, 0x40, 0x00);
@@ -2397,7 +2397,7 @@ static void tabla_codec_start_hs_polling(struct snd_soc_codec *codec)
 		pr_debug("Polling is not active, do not start polling\n");
 		return;
 	}
-	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x84);
+	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x88);
 
 	if (tabla->no_mic_headset_override) {
 		pr_debug("%s setting button threshold to min", __func__);
@@ -2758,8 +2758,11 @@ static int tabla_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 			tabla_codec_switch_micbias(codec, 0);
 			TABLA_RELEASE_LOCK(tabla->codec_resource_lock);
 		}
-
+#ifdef CONFIG_ARCH_APQ8064
+		snd_soc_update_bits(codec, w->reg, 0x1E, 0x0A);
+#else
 		snd_soc_update_bits(codec, w->reg, 0x0E, 0x0A);
+#endif
 		tabla_codec_update_cfilt_usage(codec, cfilt_sel_val, 1);
 
 		if (strnstr(w->name, internal1_text, 30))
@@ -3006,6 +3009,7 @@ static int tabla_codec_enable_rx_bias(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		tabla_enable_rx_bias(codec, 1);
+		usleep_range(50000, 50000);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		tabla_enable_rx_bias(codec, 0);
@@ -5604,7 +5608,7 @@ static short tabla_codec_setup_hs_polling(struct snd_soc_codec *codec)
 	snd_soc_update_bits(codec, tabla->mbhc_bias_regs.ctl_reg, 0x1F, 0x16);
 
 	snd_soc_update_bits(codec, TABLA_A_CDC_MBHC_CLK_CTL, 0x2, 0x2);
-	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x84);
+	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x88);
 
 	snd_soc_update_bits(codec, TABLA_A_TX_7_MBHC_EN, 0x80, 0x80);
 	snd_soc_update_bits(codec, TABLA_A_TX_7_MBHC_EN, 0x1F, 0x1C);
@@ -5735,7 +5739,7 @@ static void tabla_codec_report_plug(struct snd_soc_codec *codec, int insertion,
 				pr_debug("%s: button press is canceled\n",
 					__func__);
 			} else if (tabla->buttons_pressed) {
-				pr_debug("%s: Reporting release for reported "
+				pr_info("%s: Reporting release for reported "
 					 "button press %d\n", __func__,
 					 jack_type);
 				tabla_snd_soc_jack_report(tabla,
@@ -5763,7 +5767,7 @@ static void tabla_codec_report_plug(struct snd_soc_codec *codec, int insertion,
 			/* Report removal of current jack type */
 			if (tabla->hph_status != jack_type &&
 			    tabla->mbhc_cfg.headset_jack) {
-				pr_debug("%s: Reporting removal (%x)\n",
+				pr_info("%s: Reporting removal (%x)\n",
 					 __func__, tabla->hph_status);
 				tabla_snd_soc_jack_report(tabla,
 						tabla->mbhc_cfg.headset_jack,
@@ -5784,7 +5788,7 @@ static void tabla_codec_report_plug(struct snd_soc_codec *codec, int insertion,
 		} else if (jack_type == SND_JACK_LINEOUT)
 			tabla->current_plug = PLUG_TYPE_HIGH_HPH;
 		if (tabla->mbhc_cfg.headset_jack) {
-			pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
+			pr_info("%s: Reporting insertion %d(%x)\n", __func__,
 				 jack_type, tabla->hph_status);
 			tabla_snd_soc_jack_report(tabla,
 						  tabla->mbhc_cfg.headset_jack,
@@ -5997,7 +6001,7 @@ static void btn_lpress_fn(struct work_struct *work)
 			bias_value = tabla_codec_read_dce_result(tabla->codec);
 			dce_mv = tabla_codec_sta_dce_v(tabla->codec, 1,
 						bias_value);
-			pr_debug("%s: Reporting long button press event"
+			pr_info("%s: Reporting long button press event"
 				 " STA: %d, DCE: %d\n", __func__,
 				 sta_mv, dce_mv);
 			tabla_snd_soc_jack_report(tabla,
@@ -6151,7 +6155,7 @@ void tabla_mbhc_cal(struct snd_soc_codec *codec)
 			    cfilt_mode);
 	snd_soc_update_bits(codec, TABLA_A_BIAS_CENTRAL_BG_CTL, 0x02, bg_mode);
 
-	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x84);
+	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x88);
 	usleep_range(100, 100);
 
 	wcd9xxx_enable_irq(codec->control_data, TABLA_IRQ_MBHC_POTENTIAL);
@@ -6601,7 +6605,7 @@ static int tabla_is_fake_press(struct tabla_priv *priv)
 	v_ins_h = tabla_get_current_v_ins(priv, false);
 
 	for (i = 0; i < dces; i++) {
-		usleep_range(10000, 10000);
+		usleep_range(5000, 5000);
 		if (i == 0) {
 			mb_v = tabla_codec_sta_dce(codec, 0, true);
 			pr_debug("%s: STA[0]: %d,%d\n", __func__, mb_v,
@@ -6657,7 +6661,7 @@ static irqreturn_t tabla_release_handler(int irq, void *data)
 					pr_debug("%s: GPIO kicked in, ignore\n",
 						 __func__);
 				} else {
-					pr_debug("%s: Reporting short button "
+					pr_info("%s: Reporting short button "
 						 "press and release\n",
 						 __func__);
 					tabla_snd_soc_jack_report(priv,
@@ -7712,6 +7716,11 @@ static void tabla_hs_gpio_handler(struct snd_soc_codec *codec)
 				    0x00);
 		snd_soc_update_bits(codec, TABLA_A_MBHC_HPH, 0x01, 0x00);
 		tabla_codec_detect_plug_type(codec);
+
+		/* Do the workaround for headset fast plugin-plugout */
+		snd_soc_update_bits(codec, TABLA_A_CLK_BUFF_EN1, 0x05, 0x05);
+		snd_soc_update_bits(codec, TABLA_A_CDC_MBHC_VOLT_B2_CTL, 0xff, 0x0);
+		snd_soc_update_bits(codec, tabla->mbhc_bias_regs.mbhc_reg, 0x80, 0x80);
 	} else if ((tabla->current_plug != PLUG_TYPE_NONE) && !insert) {
 		tabla->lpi_enabled = false;
 		wmb();
@@ -7808,7 +7817,7 @@ static void tabla_hs_correct_plug_nogpio(struct work_struct *work)
 	codec = tabla->codec;
 
 	/* Make sure the MBHC mux is connected to MIC Path */
-	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x84);
+	snd_soc_write(codec, TABLA_A_MBHC_SCALING_MUX_1, 0x88);
 
 	/* setup for microphone polling */
 	tabla_turn_onoff_override(codec, true);
@@ -7902,6 +7911,9 @@ static int tabla_mbhc_init_and_calibrate(struct tabla_priv *tabla)
 				 TABLA_IRQ_HPH_PA_OCPR_FAULT);
 
 		if (tabla->mbhc_cfg.gpio) {
+			/* set gpio_irq from gpio on the fly */
+			if (!tabla->mbhc_cfg.gpio_irq)
+				tabla->mbhc_cfg.gpio_irq = gpio_to_irq(tabla->mbhc_cfg.gpio);
 			ret = request_threaded_irq(tabla->mbhc_cfg.gpio_irq,
 					       NULL,
 					       tabla_mechanical_plug_detect_irq,
@@ -8406,6 +8418,9 @@ static const struct tabla_reg_mask_val tabla_codec_reg_init_val[] = {
 
 	/* config DMIC clk to CLK_MODE_1 (3.072Mhz@12.88Mhz mclk) */
 	{TABLA_A_CDC_CLK_DMIC_CTL, 0x2A, 0x2A},
+#ifdef CONFIG_ARCH_APQ8064
+       {TABLA_A_MICB_2_CTL, 0x10, 0x00},
+#endif
 
 };
 

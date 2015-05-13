@@ -25,7 +25,7 @@ source "drivers/gpu/stub/Kconfig"
 
 source "drivers/gpu/ion/Kconfig"
 
-source "drivers/gpu/msm/Kconfig"
+source "drivers/gpu/msm2/Kconfig"
 
 config VGASTATE
        tristate
@@ -2414,6 +2414,7 @@ source "drivers/video/omap/Kconfig"
 source "drivers/video/omap2/Kconfig"
 source "drivers/video/exynos/Kconfig"
 source "drivers/video/backlight/Kconfig"
+source "drivers/video/mhl/Kconfig"
 
 if VT
 	source "drivers/video/console/Kconfig"

@@ -1410,10 +1410,6 @@ static ssize_t show_registers(struct device *dev,
 		dev_err(dev, "[%s] EINVAL\n", __func__);
 		return 0;
 	}
-	dump = kmalloc(2048, GFP_KERNEL);
-	if (dump == NULL)
-		return -ENOMEM;
-
 	dump = kmalloc(sizeof(u32) * DUMP_ENTRIES, GFP_KERNEL);
 	if (!dump) {
 		dev_err(dev, "%s: out of memory\n", __func__);
@@ -2614,6 +2610,7 @@ __acquires(udc->lock)
 {
 	unsigned i;
 	u8 tmode = 0;
+	u8 *sys_state = &(udc->gadget.usb_sys_state);
 
 	trace("%p", udc);
 
@@ -2675,6 +2672,36 @@ __acquires(udc->lock)
 		udc->ep0_dir = (type & USB_DIR_IN) ? TX : RX;
 
 		dbg_setup(_usb_addr(mEp), &req);
+
+		if (!GADGET_STATE_DONE(*sys_state))
+		{
+			switch(GADGET_STATE_PROCESS(*sys_state))
+			{
+				case GADGET_STATE_PROCESS_GET:
+					if (req.bRequest == USB_REQ_SET_CONFIGURATION) {
+						*sys_state = GADGET_STATE_PROCESS_SET;
+					}
+					else if (req.bRequest == USB_REQ_CLEAR_FEATURE) {
+						pr_info("[%s]host system may be windows", __func__);
+						*sys_state = GADGET_STATE_DONE_RESET;
+					}
+					break;
+				case GADGET_STATE_PROCESS_SET:
+					if (req.bRequest == USB_REQ_CLEAR_FEATURE) {
+						pr_info("[%s]host system may be windows", __func__);
+						*sys_state = GADGET_STATE_DONE_RESET;
+					}
+					else {
+						pr_info("[%s]host system may be mac os or linux", __func__);
+						*sys_state = GADGET_STATE_DONE_SET;
+					}
+					break;
+				default:
+					if (req.bRequest == USB_REQ_GET_DESCRIPTOR)
+						*sys_state = GADGET_STATE_PROCESS_GET;
+					break;
+			}
+		}
 
 		switch (req.bRequest) {
 		case USB_REQ_CLEAR_FEATURE:
@@ -3309,9 +3336,16 @@ static int ci13xxx_vbus_session(struct usb_gadget *_gadget, int is_active)
 		return -EOPNOTSUPP;
 
 	spin_lock_irqsave(udc->lock, flags);
+
 	udc->vbus_active = is_active;
+
+	//active = 1 when usb connect firstly
+	if (is_active == 1) {
+		_gadget->usb_sys_state = GADGET_STATE_IDLE;
+	}
 	if (udc->driver)
 		gadget_ready = 1;
+
 	spin_unlock_irqrestore(udc->lock, flags);
 
 	if (gadget_ready) {
@@ -3498,6 +3532,8 @@ static int ci13xxx_start(struct usb_gadget_driver *driver,
 	driver->driver.bus     = NULL;
 	udc->gadget.dev.driver = &driver->driver;
 	udc->softconnect = 1;
+
+	udc->gadget.usb_sys_state = GADGET_STATE_IDLE;
 
 	spin_unlock_irqrestore(udc->lock, flags);
 	pm_runtime_get_sync(&udc->gadget.dev);
